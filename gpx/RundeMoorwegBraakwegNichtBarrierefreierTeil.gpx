@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="https://gpx.studio" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/PowerExtension/v1 http://www.garmin.com/xmlschemas/PowerExtensionv1.xsd http://www.topografix.com/GPX/gpx_style/0/2 http://www.topografix.com/GPX/gpx_style/0/2/gpx_style.xsd" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxpx="http://www.garmin.com/xmlschemas/PowerExtension/v1" xmlns:gpx_style="http://www.topografix.com/GPX/gpx_style/0/2">
+  <metadata>
+    <name>RundeMoorwegBraakwegBarrierefreierTeil</name>
+    <author>
+      <name>gpx.studio</name>
+      <link href="https://gpx.studio"/>
+    </author>
+  </metadata>
+  <trk>
+    <name>RundeMoorwegBraakwegBarrierefreierTeil</name>
+    <trkseg>
+      <trkpt lat="53.78200440823281" lon="10.104409122337188">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="53.78207530179603" lon="10.104496943559667">
+        <ele>28.231786966386053</ele>
+      </trkpt>
+      <trkpt lat="53.7825228172015" lon="10.1045711859561">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="53.782970332606986" lon="10.104645428352532">
+        <ele>28.900000000001455</ele>
+      </trkpt>
+      <trkpt lat="53.78312581727596" lon="10.104671223116895">
+        <ele>29.322392776982067</ele>
+      </trkpt>
+      <trkpt lat="53.783378603035686" lon="10.104830107462561">
+        <ele>30.498140207353572</ele>
+      </trkpt>
+      <trkpt lat="53.783676727318806" lon="10.10506992453341">
+        <ele>28.66198812448514</ele>
+      </trkpt>
+      <trkpt lat="53.78392140521578" lon="10.105338402605156">
+        <ele>27.85484255533744</ele>
+      </trkpt>
+      <trkpt lat="53.78437100783065" lon="10.105326224817217">
+        <ele>27.936137197333963</ele>
+      </trkpt>
+      <trkpt lat="53.78438739213851" lon="10.105325781037266">
+        <ele>27.94212647006</ele>
+      </trkpt>
+      <trkpt lat="53.784832618240124" lon="10.105432398858325">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="53.78503657400424" lon="10.105481239928253">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="53.78503657400424" lon="10.105481239928253">
+        <ele>28</ele>
+      </trkpt>
+      <trkpt lat="53.78547805286726" lon="10.10562576275379">
+        <ele>27.56311219269446</ele>
+      </trkpt>
+      <trkpt lat="53.785919531730286" lon="10.105770285579327">
+        <ele>26.31137821306588</ele>
+      </trkpt>
+      <trkpt lat="53.78592269649545" lon="10.105771321599036">
+        <ele>26.29889617487897</ele>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

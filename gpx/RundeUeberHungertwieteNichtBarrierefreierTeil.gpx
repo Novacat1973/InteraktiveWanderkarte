@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="https://gpx.studio" version="1.1" schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/PowerExtension/v1 http://www.garmin.com/xmlschemas/PowerExtensionv1.xsd http://www.topografix.com/GPX/gpx_style/0/2 http://www.topografix.com/GPX/gpx_style/0/2/gpx_style.xsd" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/PowerExtension/v1 http://www.garmin.com/xmlschemas/PowerExtensionv1.xsd http://www.topografix.com/GPX/gpx_style/0/2 http://www.topografix.com/GPX/gpx_style/0/2/gpx_style.xsd" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxpx="http://www.garmin.com/xmlschemas/PowerExtension/v1" xmlns:gpx_style="http://www.topografix.com/GPX/gpx_style/0/2">
+  <metadata>
+    <name>RundeUeberHungertwieteNichtBarrierefreierTeil</name>
+    <author>
+      <name>gpx.studio</name>
+      <link href="https://gpx.studio"/>
+    </author>
+  </metadata>
+  <trk>
+    <name>RundeUeberHungertwieteNichtBarrierefreierTeil</name>
+    <trkseg>
+      <trkpt lat="53.77966712024869" lon="10.081086482727386">
+        <ele>31.600000000000364</ele>
+      </trkpt>
+      <trkpt lat="53.77985330139424" lon="10.080393789774046">
+        <ele>30.477163362294753</ele>
+      </trkpt>
+      <trkpt lat="53.77995147253682" lon="10.080028540873627">
+        <ele>31.700000000000728</ele>
+      </trkpt>
+      <trkpt lat="53.780379869068504" lon="10.080259789872322">
+        <ele>33.600000000000364</ele>
+      </trkpt>
+      <trkpt lat="53.780808265600186" lon="10.080491038871019">
+        <ele>35.5</ele>
+      </trkpt>
+      <trkpt lat="53.780886" lon="10.080533">
+        <ele>36</ele>
+      </trkpt>
+      <trkpt lat="53.780886" lon="10.080533">
+        <ele>34.25</ele>
+      </trkpt>
+      <trkpt lat="53.780906" lon="10.080417">
+        <ele>34.25</ele>
+      </trkpt>
+      <trkpt lat="53.781082" lon="10.079418">
+        <ele>35.5</ele>
+      </trkpt>
+      <trkpt lat="53.781291" lon="10.078231">
+        <ele>35.5</ele>
+      </trkpt>
+      <trkpt lat="53.781443" lon="10.077734">
+        <ele>36</ele>
+      </trkpt>
+      <trkpt lat="53.781528" lon="10.077321">
+        <ele>37</ele>
+      </trkpt>
+      <trkpt lat="53.781628" lon="10.076614">
+        <ele>38.75</ele>
+      </trkpt>
+      <trkpt lat="53.781732" lon="10.076311">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.781827" lon="10.076018">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.781855" lon="10.075859">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.781888" lon="10.075894">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.78195" lon="10.075965">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.782044" lon="10.075922">
+        <ele>39</ele>
+      </trkpt>
+      <trkpt lat="53.78206" lon="10.075978">
+        <ele>40.25</ele>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>
