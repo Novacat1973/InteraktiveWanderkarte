@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wanderkarte - Wakendorf II</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh;
+        }
+        
+        .main-content { display: flex; flex: 1; overflow: hidden; }
+        #map { flex: 1; height: 100%; }
+        
+        /* --- Popup Styling --- */
+        .leaflet-popup-content-wrapper { border-radius: 8px; }
+        .leaflet-popup-content { width: 280px !important; }
+        .popup-content h3 { margin: 0 0 10px; color: #007BFF; }
+        .popup-content img { width: 100%; height: auto; border-radius: 5px; margin-bottom: 5px; }
+        .popup-content .stats { font-size: 0.9em; color: #555; margin-bottom: 10px; }
+        .popup-button {
+            background-color: #007BFF; color: white !important; border: none;
+            padding: 10px 12px; border-radius: 5px; cursor: pointer;
+            width: 100%; text-align: center; font-weight: bold;
+            display: block; text-decoration: none; box-sizing: border-box;
+        }
+        .popup-button:hover { background-color: #0056b3; }
+
+        
+
+        /* --- CUSTOM FILTER CONTROL STYLING --- */
+        
+        /* 1. Der Container (Basis) */
+        .custom-filter-control {
+            background: white;
+            border-radius: 4px; 
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            transition: width 0.2s ease, height 0.2s ease; 
+            overflow: hidden; 
+        }
+
+        /* 2. Zustand: ZUSAMMENGEKLAPPT (Quadratisch) */
+        .custom-filter-control.collapsed {
+            width: 34px;  
+            height: 34px; 
+            display: block;
+            background-color: white; /* Sicherstellen, dass die Fläche transparent ist */
+            text-decoration: none; /* Link-Unterstreichung entfernen */
+            
+            /* SVG für Hamburger Menü - ACHTUNG: Der Farbwert (stroke) ist hier schwarz (%23000) */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="3" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>');
+            background-size: 20px 20px;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* WICHTIGE KORREKTUR: Sichtbarkeit des Icons sicherstellen */
+        .custom-filter-control.collapsed .toggle-button {
+            width: 100%;
+            height: 100%;
+            display: block;            
+        }
+
+        .custom-filter-control.collapsed .filter-content,
+        .custom-filter-control.collapsed h4 {
+            display: none; 
+        }
+
+        /* 3. Zustand: AUSGEKLAPPT */
+        .custom-filter-control:not(.collapsed) {
+            width: auto;
+            min-width: 220px;
+            height: auto;
+            padding: 10px;
+        }
+
+        .custom-filter-control:not(.collapsed) .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .custom-filter-control:not(.collapsed) .toggle-button {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            /* SVG für "Schließen" (X) */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        
+        .custom-filter-control h4 { margin: 0; font-size: 14px; color: #333; }
+        .filter-section { margin-bottom: 12px; }
+        .filter-section h5 { margin: 0 0 5px 0; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-option { display: block; margin-bottom: 5px; font-size: 13px; cursor: pointer; display: flex; align-items: center;}
+        .filter-option input { margin-right: 8px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-content">
+        <div id="map"></div>
+    </div>
+
+  <script> 
+
+    // === 1. KARTE & TILE LAYER ===
+    var map = L.map('map').setView([53.7852, 10.087], 15);
+
+    var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map); 
+   
+    var topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenTopoMap'
+    });
+
+    // === NEUE GLOBALE VARIABLE FÜR HIGHLIGHTING ===
+    var selectedRoute = null; 
+
+    // === STYLING OPTIONEN ===
+    var HIGHLIGHT_STYLE_OPTIONS = {
+      weight: 8, 
+      opacity: 1.0, 
+      color: '#FF0000', 
+      zIndex: 1000 
+    };
+   
+    var STANDARD_STYLE_OPTIONS = {
+      weight: 5,
+      opacity: 0.8,
+      zIndex: 1 
+    };
+
+    // === 2. DATENSPEICHER FÜR ROUTEN ===
+    var allRoutes = [];
+
+    // Marker Layer global definieren
+    var benchesLayer = L.geoJSON(null, {
+      pointToLayer: function (feature, latlng) {
+        return L.marker(latlng, {
+          icon: L.icon({ iconUrl: 'images/marker/bank.png', iconSize: [40, 54], iconAnchor: [20, 54] })
+        });
+      }
+    });
+   
+    var dogToiletsLayer = L.geoJSON(null, {
+      pointToLayer: function (feature, latlng) {
+        return L.marker(latlng, {
+          icon: L.icon({ iconUrl: 'images/marker/mika.png', iconSize: [40, 54], iconAnchor: [20, 54] })
+        });
+      }
+    });
+
+    // === 3. DATEN LADEN ===
+    fetch('baenke.geojson').then(r => r.json()).then(d => benchesLayer.addData(d));
+    fetch('hundeWC.geojson').then(r => r.json()).then(d => dogToiletsLayer.addData(d));
+
+    fetch('routes.json')
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        processRoutes(data.routes);
+      })
+      .catch(error => console.error('Fehler beim Laden der routes.json:', error));
+
+
+    // === 4. ROUTEN VERARBEITUNG ===
+    function processRoutes(routes) {
+      routes.forEach(route => {
+        var popupHtml = buildPopupHtml(route);
+        var routeColor = getColorById(route.id);
+        var routeGroup = L.layerGroup();
+
+        // Objekt vorbereiten (damit wir es im Click-Event nutzen können)
+        var routeItem = {
+          id: route.id,
+          layer: routeGroup,
+          categories: route.categories, 
+          originalColor: routeColor
+        };
+
+        // Helper Funktion um Event Listener sauber anzuhängen
+        function attachEvents(gpxLayer) {
+            // Popup an den gesamten Layer binden
+            gpxLayer.bindPopup(popupHtml);
+            
+            // Klick Event auf den GPX Layer (L.GPX leitet Klicks von der Linie weiter)
+            gpxLayer.on('click', function (ev) {
+                L.DomEvent.stopPropagation(ev); // Verhindert Klick auf Karte
+                highlightRoute(routeItem);
+            });
+        }
+
+        // GPX Teile laden
+        if (route.gpx_parts && route.gpx_parts.length > 0) {
+          route.gpx_parts.forEach(part => {
+            var partStyle = getStyleOptions(part.style, routeColor);
+            var gpxLayer = createGpxLayer(part.file, partStyle);
+            
+            // Wir warten auf 'loaded', um sicherzugehen, dass Geometrie da ist,
+            // aber binden Events direkt an das GPX Objekt.
+            gpxLayer.on('loaded', function(e) {
+                attachEvents(e.target);
+            });
+            
+            gpxLayer.addTo(routeGroup);
+          });
+        } else if (route.gpx_file) {
+          var standardStyle = getStyleOptions('standard', routeColor);
+          var gpxLayer = createGpxLayer(route.gpx_file, standardStyle);
+          
+          gpxLayer.on('loaded', function(e) {
+              attachEvents(e.target);
+          });
+          
+          gpxLayer.addTo(routeGroup);
+        }
+        
+        allRoutes.push(routeItem);
+      });
+
+      updateMapFilter();
+    }
+   
+    // === NEU: FUNKTIONEN FÜR DIE HERVORHEBUNG ===
+
+    function highlightRoute(routeItem) {
+        if (selectedRoute === routeItem) return;
+
+        // 1. Alten Highlight zurücksetzen
+        if (selectedRoute) {
+            resetHighlight();
+        }
+
+        // 2. Neuen Track setzen
+        selectedRoute = routeItem;
+        
+        // 3. Styling anwenden
+        routeItem.layer.eachLayer(gpxLayer => {
+            // gpxLayer ist das L.GPX Objekt. Es enthält Marker UND Polylines.
+            gpxLayer.eachLayer(layer => {
+                // WICHTIG: Nur Polylines stylen, sonst crasht es bei Markern!
+                if (layer instanceof L.Polyline) {
+                    layer.setStyle({
+                        color: routeItem.originalColor, 
+                        weight: HIGHLIGHT_STYLE_OPTIONS.weight,
+                        opacity: HIGHLIGHT_STYLE_OPTIONS.opacity,
+                        pane: 'overlayPane'
+                    });
+                    
+                    if (layer.bringToFront) {
+                        layer.bringToFront(); 
+                    }
+                }
+            });
+        });
+    }
+
+    function resetHighlight() {
+        if (!selectedRoute) return;
+
+        selectedRoute.layer.eachLayer(gpxLayer => {
+            gpxLayer.eachLayer(layer => {
+                // Auch hier: Sicherheitscheck auf Polyline
+                if (layer instanceof L.Polyline) {
+                    layer.setStyle({
+                        color: selectedRoute.originalColor,
+                        weight: STANDARD_STYLE_OPTIONS.weight,
+                        opacity: STANDARD_STYLE_OPTIONS.opacity
+                    });
+                }
+            });
+        });
+
+        selectedRoute = null; 
+    }
+
+    // === EVENT LISTENER FÜR DAS ZURÜCKSETZEN ===
+
+    map.on('popupclose', function(e) {
+        resetHighlight();
+    });
+
+    /// === Event Listener für Klicks auf die Karte ===      
+    map.on('click', function(e) {
+        // 1. Highlight zurücksetzen:
+        resetHighlight();
+
+        // 2. Menü einklappen:
+        // Wir suchen das Menü-Element anhand seiner Klasse
+        var menuDiv = document.querySelector('.custom-filter-control');
+        
+        // Wenn das Menü gefunden wurde UND es NICHT eingeklappt ist ('collapsed' fehlt)
+        if (menuDiv && !L.DomUtil.hasClass(menuDiv, 'collapsed')) {
+            // Fügen wir die Klasse hinzu, damit es sich schließt
+            L.DomUtil.addClass(menuDiv, 'collapsed');
+        }
+    });
+
+    // === 5. CUSTOM CONTROL (Unverändert) ===
+    var filterControl = L.control({position: 'topright'});
+
+    filterControl.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'custom-filter-control leaflet-bar collapsed');
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+
+      div.innerHTML = `
+        <div class="header-row">
+          <h4>Filter & Optionen</h4>
+          <a href="#" class="toggle-button" title="Menü umschalten"></a>
+        </div>
+
+        <div class="filter-content">
+          <div class="filter-section">
+            <h5>Karten Typ</h5>
+            <label class="filter-option">
+              <input type="radio" name="mapType" value="osm" checked onchange="updateMapType()"> OpenStreetMap
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="mapType" value="otm" onchange="updateMapType()"> OpenTopoMap
+            </label>
+          </div>
+
+          <div class="filter-section">
+            <h5>Routen Länge</h5>
+            <label class="filter-option">
+              <input type="radio" name="routeLength" value="short" onchange="updateMapFilter()"> 👠 Kurz (0-1 km)
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="routeLength" value="mid" onchange="updateMapFilter()"> 👟 Mittel (1-4 km)
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="routeLength" value="long" onchange="updateMapFilter()"> 🥾 Lang (> 4 km)
+            </label>
+            <label class="filter-option">
+              <input type="radio" name="routeLength" value="all" checked onchange="updateMapFilter()"> Alle anzeigen
+            </label>
+          </div>
+
+          <div class="filter-section">
+            <h5>Barrierefreiheit</h5>
+            <label class="filter-option">
+              <input type="checkbox" id="cb-barrierfree" onchange="updateMapFilter()"> ♿ Nur Barrierefrei
+            </label>
+          </div>
+
+          <div class="filter-section">
+            <h5>Marker</h5>
+            <label class="filter-option">
+              <input type="checkbox" id="cb-benches" onchange="toggleLayer(this, benchesLayer)"> 🪑 Bänke
+            </label>
+            <label class="filter-option">
+              <input type="checkbox" id="cb-dogs" onchange="toggleLayer(this, dogToiletsLayer)"> 💩 Hunde-WC
+            </label>
+          </div>
+        </div>
+      `;
+
+      var toggleBtn = div.querySelector('.toggle-button');
+      
+      function toggleMenu(e) {
+        if(e) L.DomEvent.stop(e);
+        if (L.DomUtil.hasClass(div, 'collapsed')) {
+          L.DomUtil.removeClass(div, 'collapsed');
+        } else {
+          L.DomUtil.addClass(div, 'collapsed');
+        }
+      }
+
+      L.DomEvent.on(toggleBtn, 'click', toggleMenu);
+      L.DomEvent.on(div, 'click', function(e) {
+        if (L.DomUtil.hasClass(div, 'collapsed')) {
+          toggleMenu(e);
+        }
+      });
+
+      return div;
+    };
+    filterControl.addTo(map);
+
+    function updateMapType() {
+        var selectedType = document.querySelector('input[name="mapType"]:checked').value;
+        if (selectedType === 'osm') {
+            if (!map.hasLayer(osmLayer)) map.addLayer(osmLayer);
+            if (map.hasLayer(topoLayer)) map.removeLayer(topoLayer);
+        } else if (selectedType === 'otm') {
+            if (!map.hasLayer(topoLayer)) map.addLayer(topoLayer);
+            if (map.hasLayer(osmLayer)) map.removeLayer(osmLayer);
+        }
+        if (selectedType === 'osm') osmLayer.bringToBack();
+        if (selectedType === 'otm') topoLayer.bringToBack();
+    }
+
+    function updateMapFilter() {
+      resetHighlight();
+      var showBarrierFree = document.getElementById('cb-barrierfree').checked;
+      var selectedLength = document.querySelector('input[name="routeLength"]:checked').value;
+
+      allRoutes.forEach(routeItem => {
+        var showThisRoute = false;
+        var matchesLength = (selectedLength === 'all') ? true : routeItem.categories.includes(selectedLength);
+        var isBlocked = routeItem.categories.includes('blocked');
+        var passesBarrierCheck = !(showBarrierFree && isBlocked);
+        showThisRoute = matchesLength && passesBarrierCheck;
+
+        if (showThisRoute) {
+          if (!map.hasLayer(routeItem.layer)) map.addLayer(routeItem.layer);
+        } else {
+          if (map.hasLayer(routeItem.layer)) map.removeLayer(routeItem.layer);
+        }
+      });
+    }
+
+    function toggleLayer(checkbox, layer) {
+      if (checkbox.checked) {
+        map.addLayer(layer);
+      } else {
+        map.removeLayer(layer);
+      }
+    }
+
+    function getStyleOptions(styleType, routeColor) {
+      var baseOptions = { 
+        color: routeColor, 
+        weight: STANDARD_STYLE_OPTIONS.weight, 
+        opacity: STANDARD_STYLE_OPTIONS.opacity,
+        zIndex: STANDARD_STYLE_OPTIONS.zIndex
+      };
+      if (styleType === 'gestrichelt') baseOptions.dashArray = '10, 10';
+      return baseOptions;
+    }
+   
+    function buildPopupHtml(route) {
+      var imagesHtml = route.images.map(imgUrl => `<img src="${imgUrl}" alt="${route.name}">`).join('');
+      var gpxFiles = [];
+      if (route.gpx_parts && route.gpx_parts.length > 0) {
+        gpxFiles = route.gpx_parts.map(p => p.file);
+      } else if (route.gpx_file) {
+        gpxFiles.push(route.gpx_file);
+      }
+      var gpxFilesString = JSON.stringify(gpxFiles);
+
+      return `
+        <div class="popup-content">
+          <h3>${route.name}</h3>
+          ${imagesHtml}
+          <div class="stats">
+            <b>Länge:</b> ${route.length_km} km<br>
+            <b>Dauer:</b> ca. ${route.duration_min} Min.
+          </div>
+          <p>${route.description}</p>
+          <button class="popup-button" onclick='downloadGpxFiles(${gpxFilesString})'>
+            GPX Download (${gpxFiles.length} Datei${gpxFiles.length !== 1 ? 'en' : ''})
+          </button>
+        </div>
+      `;   
+    }
+
+    function getColorById(id) {
+      var numId = 0;
+      var strId = id.toString();
+      for (var i = 0; i < strId.length; i++) {
+        numId = strId.charCodeAt(i) + ((numId << 5) - numId);
+      }
+      var hue = Math.abs((numId * 137.508) % 360);
+      return `hsl(${hue}, 70%, 45%)`;
+    }
+
+    function createGpxLayer(gpxFile, styleOptions) {
+      return new L.GPX(gpxFile, {
+        async: true,
+        polyline_options: styleOptions,
+        marker_options: {
+          startIconUrl: '', endIconUrl: '', shadowUrl: '', wptIconUrls: {}
+        },
+      });
+    }
+
+    function downloadGpxFiles(fileUrls) {
+      if (!Array.isArray(fileUrls) || fileUrls.length === 0) return;
+      fileUrls.forEach(url => {
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = url.substring(url.lastIndexOf('/') + 1);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
+
+  </script>
+</body>
+</html>
