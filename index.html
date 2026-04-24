@@ -32,11 +32,36 @@
         }
         .popup-button:hover { background-color: #0056b3; }
 
-        
+        /* --- VOLLBILD CONTROL --- */
+        .leaflet-control-fullscreen a {
+            display: block;
+            width: 34px;
+            height: 34px;
+            background-color: white;
+            background-size: 20px 20px;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+
+        /* Icon: Vollbild öffnen */
+        .leaflet-control-fullscreen a.fullscreen-enter {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>');
+        }
+
+        /* Icon: Vollbild verlassen */
+        .leaflet-control-fullscreen a.fullscreen-exit {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>');
+        }
+
+        .leaflet-control-fullscreen a:hover {
+            background-color: #f4f4f4;
+        }
 
         /* --- CUSTOM FILTER CONTROL STYLING --- */
         
-        /* 1. Der Container (Basis) */
         .custom-filter-control {
             background: white;
             border-radius: 4px; 
@@ -45,22 +70,18 @@
             overflow: hidden; 
         }
 
-        /* 2. Zustand: ZUSAMMENGEKLAPPT (Quadratisch) */
         .custom-filter-control.collapsed {
             width: 34px;  
             height: 34px; 
             display: block;
-            background-color: white; /* Sicherstellen, dass die Fläche transparent ist */
-            text-decoration: none; /* Link-Unterstreichung entfernen */
-            
-            /* SVG für Hamburger Menü - ACHTUNG: Der Farbwert (stroke) ist hier schwarz (%23000) */
+            background-color: white;
+            text-decoration: none;
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="3" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>');
             background-size: 20px 20px;
             background-position: center;
             background-repeat: no-repeat;
         }
 
-        /* WICHTIGE KORREKTUR: Sichtbarkeit des Icons sicherstellen */
         .custom-filter-control.collapsed .toggle-button {
             width: 100%;
             height: 100%;
@@ -72,7 +93,6 @@
             display: none; 
         }
 
-        /* 3. Zustand: AUSGEKLAPPT */
         .custom-filter-control:not(.collapsed) {
             width: auto;
             min-width: 220px;
@@ -93,7 +113,6 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
-            /* SVG für "Schließen" (X) */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>');
             background-size: contain;
             background-repeat: no-repeat;
@@ -126,7 +145,56 @@
       attribution: '&copy; OpenTopoMap'
     });
 
-    // === NEUE GLOBALE VARIABLE FÜR HIGHLIGHTING ===
+    // === VOLLBILD CONTROL ===
+    var FullscreenControl = L.Control.extend({
+        options: { position: 'topleft' },
+
+        onAdd: function (map) {
+            var container = L.DomUtil.create('div', 'leaflet-control-fullscreen leaflet-bar');
+            var link = L.DomUtil.create('a', 'fullscreen-enter', container);
+            link.href = '#';
+            link.title = 'Vollbild';
+
+            L.DomEvent.on(link, 'click', function (e) {
+                L.DomEvent.stop(e);
+                toggleFullscreen();
+            });
+
+            // Zustand aktualisieren wenn Vollbild von außen beendet wird (z.B. ESC-Taste)
+            document.addEventListener('fullscreenchange', function () {
+                if (document.fullscreenElement) {
+                    L.DomUtil.removeClass(link, 'fullscreen-enter');
+                    L.DomUtil.addClass(link, 'fullscreen-exit');
+                    link.title = 'Vollbild beenden';
+                } else {
+                    L.DomUtil.removeClass(link, 'fullscreen-exit');
+                    L.DomUtil.addClass(link, 'fullscreen-enter');
+                    link.title = 'Vollbild';
+                    // Karte nach Resize neu berechnen
+                    setTimeout(function () { map.invalidateSize(); }, 200);
+                }
+            });
+
+            return container;
+        }
+    });
+
+    map.addControl(new FullscreenControl());
+
+    function toggleFullscreen() {
+        var mapEl = document.getElementById('map');
+        if (!document.fullscreenElement) {
+            mapEl.requestFullscreen().then(function () {
+                setTimeout(function () { map.invalidateSize(); }, 200);
+            }).catch(function (err) {
+                console.warn('Vollbild nicht möglich:', err.message);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // === GLOBALE VARIABLE FÜR HIGHLIGHTING ===
     var selectedRoute = null; 
 
     // === STYLING OPTIONEN ===
@@ -146,7 +214,6 @@
     // === 2. DATENSPEICHER FÜR ROUTEN ===
     var allRoutes = [];
 
-    // Marker Layer global definieren
     var benchesLayer = L.geoJSON(null, {
       pointToLayer: function (feature, latlng) {
         return L.marker(latlng, {
@@ -185,7 +252,6 @@
         var routeColor = getColorById(route.id);
         var routeGroup = L.layerGroup();
 
-        // Objekt vorbereiten (damit wir es im Click-Event nutzen können)
         var routeItem = {
           id: route.id,
           layer: routeGroup,
@@ -193,40 +259,29 @@
           originalColor: routeColor
         };
 
-        // Helper Funktion um Event Listener sauber anzuhängen
         function attachEvents(gpxLayer) {
-            // Popup an den gesamten Layer binden
             gpxLayer.bindPopup(popupHtml);
-            
-            // Klick Event auf den GPX Layer (L.GPX leitet Klicks von der Linie weiter)
             gpxLayer.on('click', function (ev) {
-                L.DomEvent.stopPropagation(ev); // Verhindert Klick auf Karte
+                L.DomEvent.stopPropagation(ev);
                 highlightRoute(routeItem);
             });
         }
 
-        // GPX Teile laden
         if (route.gpx_parts && route.gpx_parts.length > 0) {
           route.gpx_parts.forEach(part => {
             var partStyle = getStyleOptions(part.style, routeColor);
             var gpxLayer = createGpxLayer(part.file, partStyle);
-            
-            // Wir warten auf 'loaded', um sicherzugehen, dass Geometrie da ist,
-            // aber binden Events direkt an das GPX Objekt.
             gpxLayer.on('loaded', function(e) {
                 attachEvents(e.target);
             });
-            
             gpxLayer.addTo(routeGroup);
           });
         } else if (route.gpx_file) {
           var standardStyle = getStyleOptions('standard', routeColor);
           var gpxLayer = createGpxLayer(route.gpx_file, standardStyle);
-          
           gpxLayer.on('loaded', function(e) {
               attachEvents(e.target);
           });
-          
           gpxLayer.addTo(routeGroup);
         }
         
@@ -236,24 +291,16 @@
       updateMapFilter();
     }
    
-    // === NEU: FUNKTIONEN FÜR DIE HERVORHEBUNG ===
+    // === HIGHLIGHTING ===
 
     function highlightRoute(routeItem) {
         if (selectedRoute === routeItem) return;
+        if (selectedRoute) resetHighlight();
 
-        // 1. Alten Highlight zurücksetzen
-        if (selectedRoute) {
-            resetHighlight();
-        }
-
-        // 2. Neuen Track setzen
         selectedRoute = routeItem;
         
-        // 3. Styling anwenden
         routeItem.layer.eachLayer(gpxLayer => {
-            // gpxLayer ist das L.GPX Objekt. Es enthält Marker UND Polylines.
             gpxLayer.eachLayer(layer => {
-                // WICHTIG: Nur Polylines stylen, sonst crasht es bei Markern!
                 if (layer instanceof L.Polyline) {
                     layer.setStyle({
                         color: routeItem.originalColor, 
@@ -261,10 +308,7 @@
                         opacity: HIGHLIGHT_STYLE_OPTIONS.opacity,
                         pane: 'overlayPane'
                     });
-                    
-                    if (layer.bringToFront) {
-                        layer.bringToFront(); 
-                    }
+                    if (layer.bringToFront) layer.bringToFront(); 
                 }
             });
         });
@@ -275,7 +319,6 @@
 
         selectedRoute.layer.eachLayer(gpxLayer => {
             gpxLayer.eachLayer(layer => {
-                // Auch hier: Sicherheitscheck auf Polyline
                 if (layer instanceof L.Polyline) {
                     layer.setStyle({
                         color: selectedRoute.originalColor,
@@ -289,29 +332,19 @@
         selectedRoute = null; 
     }
 
-    // === EVENT LISTENER FÜR DAS ZURÜCKSETZEN ===
-
     map.on('popupclose', function(e) {
         resetHighlight();
     });
 
-    /// === Event Listener für Klicks auf die Karte ===      
     map.on('click', function(e) {
-        // 1. Highlight zurücksetzen:
         resetHighlight();
-
-        // 2. Menü einklappen:
-        // Wir suchen das Menü-Element anhand seiner Klasse
         var menuDiv = document.querySelector('.custom-filter-control');
-        
-        // Wenn das Menü gefunden wurde UND es NICHT eingeklappt ist ('collapsed' fehlt)
         if (menuDiv && !L.DomUtil.hasClass(menuDiv, 'collapsed')) {
-            // Fügen wir die Klasse hinzu, damit es sich schließt
             L.DomUtil.addClass(menuDiv, 'collapsed');
         }
     });
 
-    // === 5. CUSTOM CONTROL (Unverändert) ===
+    // === 5. CUSTOM CONTROL ===
     var filterControl = L.control({position: 'topright'});
 
     filterControl.onAdd = function (map) {
