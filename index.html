@@ -60,6 +60,93 @@
             background-color: #f4f4f4;
         }
 
+        /* --- STANDORT CONTROL --- */
+        .leaflet-control-location a {
+            display: block;
+            width: 34px;
+            height: 34px;
+            background-color: white;
+            background-size: 20px 20px;
+            background-position: center;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .leaflet-control-location a:hover { background-color: #f4f4f4; }
+
+        /* Icon: Standort inaktiv */
+        .leaflet-control-location a.location-inactive {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23555" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 2"/></svg>');
+        }
+        /* Icon: Standort aktiv (blau) */
+        .leaflet-control-location a.location-active {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23007AFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" fill="%23007AFF"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>');
+            background-color: #EBF5FF;
+        }
+        /* Icon: Zentriert auf Standort */
+        .leaflet-control-location a.location-following {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23007AFF" stroke="%23007AFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" fill="white"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" fill="none"/></svg>');
+            background-color: #007AFF;
+        }
+
+        /* --- STANDORT MARKER --- */
+        .location-icon { background: none !important; border: none !important; }
+
+        .location-wrapper {
+            width: 40px; height: 40px;
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .location-cone {
+            position: absolute;
+            width: 0; height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 22px solid rgba(0, 122, 255, 0.35);
+            top: 1px;
+            left: 50%;
+            transform: translateX(-50%);
+            filter: drop-shadow(0 0 2px rgba(0,122,255,0.3));
+        }
+
+        .location-dot {
+            width: 16px; height: 16px;
+            background: #007AFF;
+            border: 2.5px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25), 0 2px 6px rgba(0,0,0,0.3);
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: location-pulse 2s ease-out infinite;
+        }
+
+        @keyframes location-pulse {
+            0%   { box-shadow: 0 0 0 3px rgba(0,122,255,0.25), 0 2px 6px rgba(0,0,0,0.3); }
+            50%  { box-shadow: 0 0 0 8px rgba(0,122,255,0.08), 0 2px 6px rgba(0,0,0,0.3); }
+            100% { box-shadow: 0 0 0 3px rgba(0,122,255,0.25), 0 2px 6px rgba(0,0,0,0.3); }
+        }
+
+        /* iOS Kompass-Hinweis */
+        .ios-permission-toast {
+            position: fixed;
+            bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 9999;
+            text-align: center;
+            max-width: 280px;
+            line-height: 1.4;
+            display: none;
+        }
+
         /* --- CUSTOM FILTER CONTROL STYLING --- */
         
         .custom-filter-control {
@@ -131,6 +218,7 @@
     <div class="main-content">
         <div id="map"></div>
     </div>
+    <div class="ios-permission-toast" id="iosToast"></div>
 
   <script> 
 
@@ -192,6 +280,216 @@
         } else {
             document.exitFullscreen();
         }
+    }
+
+    // === STANDORT CONTROL ===
+
+    // Zustand
+    var locationActive   = false;  // GPS läuft
+    var followUser       = false;  // Karte folgt dem Nutzer
+    var watchId          = null;
+    var locationMarker   = null;
+    var accuracyCircle   = null;
+    var currentHeading   = null;
+    var locationLink     = null;   // Referenz auf den Button
+
+    var LocationControl = L.Control.extend({
+        options: { position: 'topleft' },
+        onAdd: function (map) {
+            var container = L.DomUtil.create('div', 'leaflet-control-location leaflet-bar');
+            locationLink = L.DomUtil.create('a', 'location-inactive', container);
+            locationLink.href = '#';
+            locationLink.title = 'Mein Standort';
+
+            L.DomEvent.on(locationLink, 'click', function (e) {
+                L.DomEvent.stop(e);
+                handleLocationClick();
+            });
+
+            return container;
+        }
+    });
+    map.addControl(new LocationControl());
+
+    // --- Haupt-Logik beim Klick auf den Button ---
+    function handleLocationClick() {
+        if (!locationActive) {
+            // Noch nicht aktiv → starten
+            startLocation();
+        } else if (!followUser) {
+            // Aktiv, aber Karte folgt nicht → zentrieren & folgen
+            followUser = true;
+            setLocationButtonState('following');
+            if (locationMarker) {
+                map.setView(locationMarker.getLatLng(), map.getZoom());
+            }
+        } else {
+            // Aktiv + folgt → alles stoppen
+            stopLocation();
+        }
+    }
+
+    function startLocation() {
+        if (!navigator.geolocation) {
+            showToast('Geolocation wird von diesem Browser nicht unterstützt.');
+            return;
+        }
+
+        // iOS 13+: Kompass-Berechtigung anfragen
+        requestCompassPermission();
+
+        followUser = true;
+        locationActive = true;
+        setLocationButtonState('following');
+
+        watchId = navigator.geolocation.watchPosition(
+            onPositionUpdate,
+            onPositionError,
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        );
+    }
+
+    function stopLocation() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        if (locationMarker) { map.removeLayer(locationMarker); locationMarker = null; }
+        if (accuracyCircle)  { map.removeLayer(accuracyCircle);  accuracyCircle = null; }
+
+        locationActive = false;
+        followUser     = false;
+        currentHeading = null;
+        setLocationButtonState('inactive');
+    }
+
+    // --- GPS Position empfangen ---
+    function onPositionUpdate(position) {
+        var latlng   = L.latLng(position.coords.latitude, position.coords.longitude);
+        var accuracy = position.coords.accuracy;
+
+        // GPS-Heading nutzen, wenn vorhanden und bewegt (heading ist NaN im Stand)
+        if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
+            currentHeading = position.coords.heading;
+        }
+
+        // Genauigkeitskreis
+        if (!accuracyCircle) {
+            accuracyCircle = L.circle(latlng, {
+                radius: accuracy,
+                color: '#007AFF', fillColor: '#007AFF',
+                fillOpacity: 0.08, weight: 1, opacity: 0.4
+            }).addTo(map);
+        } else {
+            accuracyCircle.setLatLng(latlng).setRadius(accuracy);
+        }
+
+        // Standortmarker
+        if (!locationMarker) {
+            locationMarker = L.marker(latlng, {
+                icon: buildLocationIcon(currentHeading),
+                zIndexOffset: 1000,
+                interactive: false
+            }).addTo(map);
+        } else {
+            locationMarker.setLatLng(latlng);
+            locationMarker.setIcon(buildLocationIcon(currentHeading));
+        }
+
+        if (followUser) {
+            map.setView(latlng, map.getZoom());
+        }
+    }
+
+    function onPositionError(err) {
+        var msg = 'Standort konnte nicht ermittelt werden.';
+        if (err.code === 1) msg = 'Standortzugriff wurde verweigert.';
+        if (err.code === 3) msg = 'Standortabfrage hat zu lange gedauert.';
+        showToast(msg);
+        stopLocation();
+    }
+
+    // --- Kompass / Geräteausrichtung ---
+    function requestCompassPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13+
+            DeviceOrientationEvent.requestPermission()
+                .then(function (state) {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', onDeviceOrientation, true);
+                    } else {
+                        showToast('Kompasszugriff verweigert – nur GPS-Richtung verfügbar.');
+                    }
+                })
+                .catch(function () {
+                    showToast('Kompass konnte nicht aktiviert werden.');
+                });
+        } else {
+            // Android & Desktop
+            window.addEventListener('deviceorientation', onDeviceOrientation, true);
+        }
+    }
+
+    function onDeviceOrientation(event) {
+        if (!locationActive) return;
+
+        var heading = null;
+        if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
+            // iOS liefert bereits korrigierte Kompassrichtung (0 = Norden)
+            heading = event.webkitCompassHeading;
+        } else if (event.alpha !== null && event.alpha !== undefined) {
+            // Android: alpha ist Grad vom Norden, aber im Uhrzeigersinn → umkehren
+            heading = (360 - event.alpha) % 360;
+        }
+
+        if (heading !== null) {
+            currentHeading = heading;
+            if (locationMarker) {
+                locationMarker.setIcon(buildLocationIcon(currentHeading));
+            }
+        }
+    }
+
+    // --- Hilfsfunktionen ---
+    function buildLocationIcon(heading) {
+        var hasHeading = heading !== null && !isNaN(heading);
+        var coneHtml = hasHeading
+            ? `<div class="location-cone"></div>`
+            : '';
+        return L.divIcon({
+            className: 'location-icon',
+            html: `<div class="location-wrapper" style="transform: rotate(${hasHeading ? heading : 0}deg)">
+                     ${coneHtml}
+                     <div class="location-dot"></div>
+                   </div>`,
+            iconSize:   [40, 40],
+            iconAnchor: [20, 20]
+        });
+    }
+
+    function setLocationButtonState(state) {
+        if (!locationLink) return;
+        L.DomUtil.removeClass(locationLink, 'location-inactive');
+        L.DomUtil.removeClass(locationLink, 'location-active');
+        L.DomUtil.removeClass(locationLink, 'location-following');
+        L.DomUtil.addClass(locationLink, 'location-' + state);
+    }
+
+    // Wenn der Nutzer die Karte verschiebt → Folgemodus beenden
+    map.on('dragstart', function () {
+        if (locationActive && followUser) {
+            followUser = false;
+            setLocationButtonState('active');
+        }
+    });
+
+    function showToast(msg) {
+        var toast = document.getElementById('iosToast');
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(function () { toast.style.display = 'none'; }, 3500);
     }
 
     // === GLOBALE VARIABLE FÜR HIGHLIGHTING ===
