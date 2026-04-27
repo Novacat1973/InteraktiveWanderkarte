@@ -96,6 +96,28 @@
       "gpx_file": "gpx/RundeUmSandberg.gpx",
       "gpx_parts": null,
       "images": []
+    },
+    {
+      "id": "10",
+      "name": "Große Fahrenhorster Runde",
+      "categories": ["long"],
+      "length_km": 11.75,
+      "duration_min": 120,
+      "description": "Eine lange Runde durch die Alsterniederung, das Moor und am Fahrenhorster Hof vorbei. Man überquert zwei mal die Alster und wandert mitten durch die Felder.",
+      "gpx_file": "gpx/RundeFahrenhorst.gpx",
+      "gpx_parts": null,
+      "images": []
+    },
+    {
+      "id": "11",
+      "name": "Quer durch den Endern",
+      "categories": ["long"],
+      "length_km": 6,
+      "duration_min": 60,
+      "description": "Hier geht es quer durch den Endern. Mehr Höhenmeter kann man auf unserem flachen Land nicht in einer Route schaffen.",
+      "gpx_file": "gpx/RundeQuerDurchDenEndern.gpx",
+      "gpx_parts": null,
+      "images": []
     }
   ]
 }
